@@ -1,0 +1,703 @@
+-- [[ TANJIRO HUB - ROBLOX LUAU SCRIPT ]]
+-- Optimized layout using Rayfield UI Library
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = "Tanjiro Hub", 
+    LoadingTitle = "Tanjiro Script Setup",
+    LoadingSubtitle = "by TANJIRO",
+    ConfigurationSaving = {Enabled = false},
+    KeySystem = false
+})
+
+-- ==================== TABS CREATION ====================
+local InfoTab = Window:CreateTab("Tab info", 4483362458)
+local VisualsTab = Window:CreateTab("Tab Esp", 4483362458)
+local CombatTab = Window:CreateTab("បាញ់ខ្លួនចូលក្បាលនិងជំនួយ🔥", 4483362458)
+local SpeedTab = Window:CreateTab("ល្បឿន", 4483362458)
+local TeleportTab = Window:CreateTab("បន្លាស់ទី", 4483362458)
+local AutoFarmTab = Window:CreateTab("Auto Farm Box", 4483362458)
+
+-- ==================== TAB INFO ====================
+InfoTab:CreateParagraph({
+    Title = "Info",
+    Content = "Made by: TANJIRO\nអ្នកបង្កើតនៅខ្មែរមានឈ្មោះថា [ TANJIRO ]\n\nMobile-optimized layout configured."
+})
+
+-- ==================== VARIABLES ====================
+local ESP_Player = false
+local ESP_Name = false
+local ESP_Health = false
+local ESP_Distance = false
+
+local HitboxEnabled = false
+local HitboxSize = 20
+local TargetName = ""
+local NormalSpeed = 16
+local NormalJump = 50 
+
+local AimbotEnabled = false
+local TeamCheck = false
+local FOV_Enabled = false
+local FOV_Size = 100
+local FullbrightEnabled = false
+
+local BangLoopActive = false
+local JerkLoopActive = false
+local NoclipEnabled = false
+local FlyEnabled = false
+local FlySpeed = 50
+
+-- Auto Farm Variables
+local AutoPickUpActive = false
+local AutoPutActive = false
+
+local PickupCFrame = nil
+local DropCFrame = nil
+local AFKFarmActive = false
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Color = Color3.fromRGB(255, 0, 0)
+FOVCircle.Thickness = 1.5
+FOVCircle.NumSides = 64
+FOVCircle.Radius = FOV_Size
+FOVCircle.Filled = false
+FOVCircle.Visible = false
+
+local OrigR15C0 = CFrame.new(1, 0.5, 0)
+local OrigR6C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(0, math.rad(90), 0)
+
+-- ==================== FPS GUI SETUP ====================
+local FPSGui = Instance.new("ScreenGui")
+FPSGui.Name = "TanjiroFPSGui"
+FPSGui.ResetOnSpawn = false
+
+if gethui then
+    FPSGui.Parent = gethui()
+elseif syn then
+    syn.protect_gui(FPSGui)
+    FPSGui.Parent = CoreGui
+else
+    FPSGui.Parent = CoreGui
+end
+
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.Parent = FPSGui
+FPSLabel.Size = UDim2.new(0, 100, 0, 30)
+FPSLabel.Position = UDim2.new(0.5, -50, 0, 20)
+FPSLabel.BackgroundTransparency = 0.4
+FPSLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+FPSLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
+FPSLabel.TextSize = 16
+FPSLabel.Font = Enum.Font.Code
+FPSLabel.Text = "FPS: 0"
+FPSLabel.Visible = false
+
+local UICornerFPS = Instance.new("UICorner", FPSLabel)
+UICornerFPS.CornerRadius = UDim.new(0, 6)
+
+local UIStrokeFPS = Instance.new("UIStroke", FPSLabel)
+UIStrokeFPS.Color = Color3.fromRGB(0, 255, 120)
+UIStrokeFPS.Thickness = 1.5
+UIStrokeFPS.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local ShowFPSToggle = false
+RunService.RenderStepped:Connect(function(deltaTime)
+    if ShowFPSToggle then
+        FPSLabel.Text = "FPS: " .. math.floor(1 / deltaTime)
+    end
+end)
+
+-- ==================== ESP SYSTEM ====================
+RunService.RenderStepped:Connect(function()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+            
+            if hrp and humanoid then
+                local hl = p.Character:FindFirstChild("TanjiroHl")
+                if ESP_Player then
+                    if not hl then
+                        hl = Instance.new("Highlight", p.Character)
+                        hl.Name = "TanjiroHl"
+                        hl.FillColor = Color3.fromRGB(0, 255, 120)
+                        hl.FillTransparency = 0.5
+                    end
+                elseif hl then hl:Destroy() end
+                
+                local bbg = hrp:FindFirstChild("TanjiroNm")
+                if ESP_Name or ESP_Health or ESP_Distance then
+                    if not bbg then
+                        bbg = Instance.new("BillboardGui", hrp)
+                        bbg.Name = "TanjiroNm"
+                        bbg.Size = UDim2.new(0, 250, 0, 70)
+                        bbg.AlwaysOnTop = true
+                        bbg.StudsOffset = Vector3.new(0, 3, 0)
+                        
+                        local tl = Instance.new("TextLabel", bbg)
+                        tl.Name = "EspText"
+                        tl.BackgroundTransparency = 1
+                        tl.Size = UDim2.new(1, 0, 1, 0)
+                        tl.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        tl.TextSize = 14
+                        tl.Font = Enum.Font.SourceSansBold
+                    end
+                    
+                    local espString = ""
+                    if ESP_Name then espString = espString .. p.Name end
+                    if ESP_Health then
+                        local hp = math.floor(humanoid.Health)
+                        local maxHp = math.floor(humanoid.MaxHealth)
+                        espString = espString .. (espString ~= "" and " | " or "") .. "HP: " .. hp .. "/" .. maxHp
+                    end
+                    if ESP_Distance and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local dist = math.floor((hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+                        espString = espString .. (espString ~= "" and " | " or "") .. dist .. "m"
+                    end
+                    
+                    bbg.EspText.Text = espString
+                elseif bbg then 
+                    bbg:Destroy() 
+                end
+            end
+        end
+    end
+end)
+
+-- ==================== HITBOX SYSTEM ====================
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if HitboxEnabled then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character then
+                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+                        hrp.Transparency = 0.7
+                        hrp.BrickColor = BrickColor.new("Really blue")
+                        hrp.Material = Enum.Material.Neon
+                        hrp.CanCollide = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ==================== SPEED & JUMP SYSTEM ====================
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") and not FlyEnabled then
+            local humanoid = LocalPlayer.Character.Humanoid
+            humanoid.WalkSpeed = NormalSpeed
+            humanoid.UseJumpPower = true
+            humanoid.JumpPower = NormalJump
+        end
+    end
+end)
+
+-- ==================== NOCLIP SYSTEM ====================
+RunService.Stepped:Connect(function()
+    if NoclipEnabled and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- ==================== FLY SYSTEM ====================
+local BodyGyro, BodyVelocity
+RunService.RenderStepped:Connect(function()
+    if FlyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        
+        if not hrp:FindFirstChild("TanjiroFlyGyro") then
+            BodyGyro = Instance.new("BodyGyro", hrp)
+            BodyGyro.Name = "TanjiroFlyGyro"
+            BodyGyro.P = 9e4
+            BodyGyro.maxTorque = Vector3.new(9e5, 9e5, 9e5)
+        end
+        if not hrp:FindFirstChild("TanjiroFlyVelocity") then
+            BodyVelocity = Instance.new("BodyVelocity", hrp)
+            BodyVelocity.Name = "TanjiroFlyVelocity"
+            BodyVelocity.velocity = Vector3.new(0, 0, 0)
+            BodyVelocity.maxForce = Vector3.new(9e5, 9e5, 9e5)
+        end
+        
+        humanoid.PlatformStand = true
+        BodyGyro.cframe = Camera.CFrame
+        
+        local moveDirection = humanoid.MoveDirection
+        if moveDirection.Magnitude > 0 then
+            BodyVelocity.velocity = Camera.CFrame:VectorToWorldSpace(Vector3.new(moveDirection.X, 0, moveDirection.Z).Unit * FlySpeed)
+        else
+            BodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+        end
+    else
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            if hrp:FindFirstChild("TanjiroFlyGyro") then hrp.TanjiroFlyGyro:Destroy() end
+            if hrp:FindFirstChild("TanjiroFlyVelocity") then hrp.TanjiroFlyVelocity:Destroy() end
+        end
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+        end
+    end
+end)
+
+-- ==================== AIMBOT SYSTEM WITH WALL CHECK ====================
+local function IsVisible(TargetPart)
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Head") then return false end
+    
+    local RaycastParams = RaycastParams.new()
+    RaycastParams.FilterDescendantsInstances = {LocalPlayer.Character, TargetPart.Parent}
+    RaycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    RaycastParams.IgnoreWater = true
+    
+    local Origin = Camera.CFrame.Position
+    local Direction = (TargetPart.Position - Origin)
+    local Result = workspace:Raycast(Origin, Direction, RaycastParams)
+    
+    return Result == nil
+end
+
+local function GetClosestPlayer()
+    local MaximumDistance = FOV_Enabled and FOV_Size or math.huge
+    local Target = nil
+    local ScreenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
+            if TeamCheck and p.Team == LocalPlayer.Team then continue end
+            
+            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health <= 0 then continue end
+            if not IsVisible(p.Character.Head) then continue end
+            
+            local ScreenPoint, OnScreen = Camera:WorldToScreenPoint(p.Character.Head.Position)
+            
+            if OnScreen or not FOV_Enabled then
+                local VectorDistance = (ScreenCenter - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
+                if VectorDistance < MaximumDistance then
+                    MaximumDistance = VectorDistance
+                    Target = p
+                end
+            end
+        end
+    end
+    return Target
+end
+
+RunService.RenderStepped:Connect(function()
+    if FOV_Enabled then
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        FOVCircle.Radius = FOV_Size
+        FOVCircle.Visible = true
+    else
+        FOVCircle.Visible = false
+    end
+    
+    if AimbotEnabled then
+        local Target = GetClosestPlayer()
+        if Target and Target.Character and Target.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, Target.Character.Head.Position)
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if FullbrightEnabled then
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+    end
+end)
+
+-- ==================== UI CONTROLS ====================
+VisualsTab:CreateSection("--- ESP SYSTEMS ---")
+VisualsTab:CreateToggle({Name = "មើលឃើញមនុស្ស", CurrentValue = false, Callback = function(v) ESP_Player = v end})
+VisualsTab:CreateToggle({Name = "មើលឃើញឈ្មោះមនុស្ស", CurrentValue = false, Callback = function(v) ESP_Name = v end})
+VisualsTab:CreateToggle({Name = "មើលមនុស្សឃើញឈាម", CurrentValue = false, Callback = function(v) ESP_Health = v end})
+VisualsTab:CreateToggle({Name = "មើលចម្ងាយម៉ែត្រមនុស្ស", CurrentValue = false, Callback = function(v) ESP_Distance = v end})
+
+CombatTab:CreateSection("--- PERFORMANCE & VISUAL ---")
+CombatTab:CreateToggle({Name = "💡 ជំនួយពន្លឺភ្លឺច្បាស់ (Fullbright)", CurrentValue = false, Callback = function(v) FullbrightEnabled = v end})
+
+SpeedTab:CreateInput({Name = "កំណត់ល្បឿនរត់ (WalkSpeed)", PlaceholderText = "16", RemoveTextAfterFocusLost = false, Callback = function(text) local num = tonumber(text) if num then NormalSpeed = math.max(num, 16) end end})
+SpeedTab:CreateInput({Name = "កំណត់កម្លាំងលោត", PlaceholderText = "50", RemoveTextAfterFocusLost = false, Callback = function(text) local num = tonumber(text) if num then NormalJump = math.clamp(num, 1, 1000) end end})
+
+-- ==================== AUTO FARM BOX CONTROLS ====================
+
+AutoFarmTab:CreateSection("--- AFK AUTO FARM (FAST TP 0.1s) ---")
+AutoFarmTab:CreateParagraph({
+    Title = "How to use",
+    Content = "1. Walk to the Truck and click 'Set Pickup Location'.\n2. Walk to the Warehouse/Drop zone and click 'Set Drop Location'.\n3. Turn on the AFK Teleport Farm toggle below."
+})
+
+AutoFarmTab:CreateButton({
+    Name = "📍 Set Pickup Location (កន្លែងយកប្រអប់)",
+    Callback = function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            PickupCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+            Rayfield:Notify({Title = "Saved", Content = "Pickup location successfully set!", Duration = 3})
+        end
+    end
+})
+
+AutoFarmTab:CreateButton({
+    Name = "📍 Set Drop Location (កន្លែងដាក់ប្រអប់)",
+    Callback = function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            DropCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+            Rayfield:Notify({Title = "Saved", Content = "Drop location successfully set!", Duration = 3})
+        end
+    end
+})
+
+AutoFarmTab:CreateToggle({
+    Name = "🚀 ដំណើរការ AFK Auto Farm (Fast TP & Put)",
+    CurrentValue = false,
+    Callback = function(v)
+        AFKFarmActive = v
+        if v then
+            if not PickupCFrame or not DropCFrame then
+                Rayfield:Notify({Title = "Error", Content = "Please set both locations first!", Duration = 3})
+                AFKFarmActive = false
+                return
+            end
+            
+            task.spawn(function()
+                while AFKFarmActive do
+                    task.wait(0.1) -- Reduced delay to 0.1s for fast teleporting
+                    pcall(function()
+                        local char = LocalPlayer.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") then
+                            local hrp = char.HumanoidRootPart
+                            local hasBox = char:FindFirstChildOfClass("Tool")
+                            
+                            if not hasBox then
+                                -- We don't have a box, teleport to pickup
+                                hrp.CFrame = PickupCFrame
+                                task.wait(0.05)
+                                
+                                -- Fire nearby prompts
+                                for _, prompt in ipairs(workspace:GetDescendants()) do
+                                    if prompt:IsA("ProximityPrompt") then
+                                        local dist = (prompt.Parent.Position - hrp.Position).Magnitude
+                                        if dist <= prompt.MaxActivationDistance + 5 then
+                                            fireproximityprompt(prompt, 1)
+                                        end
+                                    end
+                                end
+                            else
+                                -- We have a box, teleport to drop off
+                                hrp.CFrame = DropCFrame
+                                task.wait(0.05)
+                                
+                                -- Fire nearby prompts
+                                for _, prompt in ipairs(workspace:GetDescendants()) do
+                                    if prompt:IsA("ProximityPrompt") then
+                                        local dist = (prompt.Parent.Position - hrp.Position).Magnitude
+                                        if dist <= prompt.MaxActivationDistance + 5 then
+                                            fireproximityprompt(prompt, 1)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
+            end)
+        end
+    end
+})
+
+AutoFarmTab:CreateSection("--- LEGACY NORMAL FARM ---")
+AutoFarmTab:CreateToggle({
+    Name = "Auto Pick Up Box (No TP)",
+    CurrentValue = false,
+    Callback = function(v)
+        AutoPickUpActive = v
+        if v then
+            task.spawn(function()
+                while AutoPickUpActive do
+                    task.wait(0.1)
+                    pcall(function()
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            if not LocalPlayer.Character:FindFirstChildOfClass("Tool") then
+                                for _, prompt in ipairs(workspace:GetDescendants()) do
+                                    if prompt:IsA("ProximityPrompt") then
+                                        local dist = (prompt.Parent.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                                        if dist <= prompt.MaxActivationDistance then
+                                            fireproximityprompt(prompt, 1)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
+            end)
+        end
+    end
+})
+
+AutoFarmTab:CreateToggle({
+    Name = "Auto Put Box (No TP)",
+    CurrentValue = false,
+    Callback = function(v)
+        AutoPutActive = v
+        if v then
+            task.spawn(function()
+                while AutoPutActive do
+                    task.wait(0.1)
+                    pcall(function()
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            if LocalPlayer.Character:FindFirstChildOfClass("Tool") then
+                                for _, prompt in ipairs(workspace:GetDescendants()) do
+                                    if prompt:IsA("ProximityPrompt") then
+                                        local dist = (prompt.Parent.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                                        if dist <= prompt.MaxActivationDistance then
+                                            fireproximityprompt(prompt, 1)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
+            end)
+        end
+    end
+})
+
+TeleportTab:CreateSection("--- TARGET CONFIGURATION ---")
+TeleportTab:CreateInput({Name = "ដាក់ឈ្មោះមនុស្សក្នុង Server", PlaceholderText = "វាយឈ្មោះ...", RemoveTextAfterFocusLost = false, Callback = function(t) TargetName = t end})
+
+TeleportTab:CreateSection("--- MOVEMENT AIDS ---")
+TeleportTab:CreateToggle({Name = "🧱 ដើរធ្លាយជញ្ជាំង (Noclip)", CurrentValue = false, Callback = function(v) NoclipEnabled = v end})
+TeleportTab:CreateToggle({Name = "🦅 ហោះហើរ (Fly)", CurrentValue = false, Callback = function(v) FlyEnabled = v end})
+
+TeleportTab:CreateSection("--- TELEPORT SYSTEMS ---")
+TeleportTab:CreateButton({
+    Name = "📍 TP (តេឡេផតទៅរកគេ)",
+    Callback = function()
+        if TargetName ~= "" then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and (p.Name:lower():find(TargetName:lower()) or p.DisplayName:lower():find(TargetName:lower())) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
+                    break
+                end
+            end
+        end
+    end
+})
+
+TeleportTab:CreateToggle({
+    Name = "🔥 បើកមុខងារ Bang Player (Loop)",
+    CurrentValue = false,
+    Callback = function(v)
+        BangLoopActive = v
+        if v then
+            task.spawn(function()
+                while BangLoopActive do
+                    task.wait(0.05)
+                    if TargetName ~= "" and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        for _, p in pairs(Players:GetPlayers()) do
+                            if p ~= LocalPlayer and (p.Name:lower():find(TargetName:lower()) or p.DisplayName:lower():find(TargetName:lower())) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                                LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1.1)
+                                task.wait(0.02)
+                                LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0.5)
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+})
+
+TeleportTab:CreateToggle({
+    Name = "🕺 Custom Joint Animation (Loop)",
+    CurrentValue = false,
+    Callback = function(v)
+        JerkLoopActive = v
+        if v then
+            task.spawn(function()
+                while JerkLoopActive do
+                    local character = LocalPlayer.Character
+                    if character then
+                        local humanoid = character:FindFirstChildOfClass("Humanoid")
+                        if humanoid and humanoid.RigType == Enum.HumanoidRigType.R15 then
+                            local rShoulder = character:FindFirstChild("RightUpperArm") and character.RightUpperArm:FindFirstChild("RightShoulder")
+                            if rShoulder then
+                                rShoulder.C0 = rShoulder.C0 * CFrame.new(0, -0.2, -0.2) * CFrame.Angles(math.rad(20), 0, 0)
+                                task.wait(0.05)
+                                rShoulder.C0 = rShoulder.C0 * CFrame.new(0, 0.2, 0.2) * CFrame.Angles(math.rad(-20), 0, 0)
+                                task.wait(0.05)
+                            else task.wait(0.1) end
+                        else
+                            local rShoulder = character:FindFirstChild("Torso") and character.Torso:FindFirstChild("Right Shoulder")
+                            if rShoulder then
+                                rShoulder.C0 = rShoulder.C0 * CFrame.new(0, -0.3, -0.3) * CFrame.Angles(math.rad(25), 0, 0)
+                                task.wait(0.05)
+                                rShoulder.C0 = rShoulder.C0 * CFrame.new(0, 0.3, 0.3) * CFrame.Angles(math.rad(-25), 0, 0)
+                                task.wait(0.05)
+                            else task.wait(0.1) end
+                        end
+                    else task.wait(0.2) end
+                end
+                
+                local character = LocalPlayer.Character
+                if character then
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid and humanoid.RigType == Enum.HumanoidRigType.R15 then
+                        local rShoulder = character:FindFirstChild("RightUpperArm") and character.RightUpperArm:FindFirstChild("RightShoulder")
+                        if rShoulder then rShoulder.C0 = OrigR15C0 end
+                    else
+                        local rShoulder = character:FindFirstChild("Torso") and character.Torso:FindFirstChild("Right Shoulder")
+                        if rShoulder then rShoulder.C0 = OrigR6C0 end
+                    end
+                end
+            end)
+        end
+    end
+})
+
+-- ==================== 7YD7 EMOTES & ANIMATIONS ====================
+TeleportTab:CreateSection("--- EMOTES & ANIMATIONS ---")
+TeleportTab:CreateButton({
+    Name = "🎭 Open 7yd7 Emote & Animation Menu",
+    Callback = function()
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))()
+        end)
+    end
+})
+
+-- ==================== PERFORMANCE BOOSTER ====================
+TeleportTab:CreateSection("--- PERFORMANCE BOOSTER ---")
+
+TeleportTab:CreateButton({
+    Name = "🛠️ រត់ Script បន្ថយភាពរអាក់រអួល (Fix Lag / Textures)",
+    Callback = function()
+        pcall(function()
+            loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Fix-Lag-76485"))()
+        end)
+    end
+})
+
+TeleportTab:CreateToggle({
+    Name = "🚀 បង្កើន FPS ដល់ 120 (Boost FPS)",
+    CurrentValue = false,
+    Callback = function(v)
+        if setfpscap then
+            if v then
+                setfpscap(120)
+            else
+                setfpscap(60)
+            end
+        end
+    end
+})
+
+TeleportTab:CreateToggle({
+    Name = "📊 បង្ហាញ FPS (Show FPS on Screen)",
+    CurrentValue = false,
+    Callback = function(v)
+        ShowFPSToggle = v
+        FPSLabel.Visible = v
+    end
+})
+
+-- ==================== FLOATING HIDE/SHOW BUTTON ====================
+local function createHideButton()
+    local HideUI = Instance.new("ScreenGui")
+    HideUI.Name = "TanjiroHideUI"
+    HideUI.ResetOnSpawn = false
+    
+    if gethui then
+        HideUI.Parent = gethui()
+    elseif syn then
+        syn.protect_gui(HideUI)
+        HideUI.Parent = CoreGui
+    else
+        HideUI.Parent = CoreGui
+    end
+
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+    ToggleBtn.Position = UDim2.new(0, 15, 0, 15)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    ToggleBtn.BackgroundTransparency = 0.2
+    ToggleBtn.Text = "👁️"
+    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleBtn.TextSize = 22
+    ToggleBtn.Parent = HideUI
+
+    local UICorner = Instance.new("UICorner", ToggleBtn)
+    UICorner.CornerRadius = UDim.new(1, 0)
+
+    local UIStroke = Instance.new("UIStroke", ToggleBtn)
+    UIStroke.Color = Color3.fromRGB(0, 255, 120)
+    UIStroke.Thickness = 2
+    UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    local dragging, dragInput, dragStart, startPos
+    ToggleBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = ToggleBtn.Position
+        end
+    end)
+    ToggleBtn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    ToggleBtn.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            ToggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    local isVisible = true
+    ToggleBtn.MouseButton1Click:Connect(function()
+        isVisible = not isVisible
+        
+        local uiContainers = { CoreGui }
+        if gethui then table.insert(uiContainers, gethui()) end
+        if LocalPlayer:FindFirstChild("PlayerGui") then table.insert(uiContainers, LocalPlayer.PlayerGui) end
+
+        for _, container in pairs(uiContainers) do
+            for _, gui in pairs(container:GetChildren()) do
+                if gui:IsA("ScreenGui") and gui.Name ~= "TanjiroHideUI" then
+                    gui.Enabled = isVisible
+                end
+            end
+        end
+    end)
+end
+
+createHideButton()
